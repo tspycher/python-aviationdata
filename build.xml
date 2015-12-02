@@ -1,0 +1,180 @@
+<project name="python-aviationdata" default="build" basedir=".">
+    <description>
+        Builds Zerodine Aviationdata Library
+    </description>
+
+    <property environment="env"/>
+    <property name="src" location="app"/>
+    <property name="build" location="build"/>
+    <property name="dist" location="dist"/>
+    <property name="virtenv" location="${env.VIRTUAL_ENV}" />
+    <property name="python" location="${virtenv}/bin/python"/>
+    <property name="pip" location="${virtenv}/bin/pip"/>
+    <property name="pypi_repository" value="local"/>
+
+
+    <!--<target name="production">
+        <property name="ssh_user" value="21127-2699"/>
+        <property name="ssh_keyfile" value="ssh-prod-deploy.key"/>
+        <property name="ssh_deploy_host" value="gate.appengine.flow.ch"/>
+        <property name="ssh_deploy_port" value="3022"/>
+        <property name="ssh_deploy_directory" value="~/ROOT"/>
+        <property name="ssh_deploy_venv" value="${ssh_deploy_directory}/venv"/>
+    </target>
+
+    <target name="integration">
+        <property name="ssh_user" value="21209-2699"/>
+        <property name="ssh_keyfile" value="ssh-deploy.key"/>
+        <property name="ssh_deploy_host" value="gate.appengine.flow.ch"/>
+        <property name="ssh_deploy_port" value="3022"/>
+        <property name="ssh_deploy_directory" value="~/ROOT"/>
+        <property name="ssh_deploy_venv" value="${ssh_deploy_directory}/venv"/>
+    </target>
+    -->
+
+    <property name="BUILD_TAG" value="dev"/>
+    <property name="VERSION" value="1.0.0"/>
+    <tstamp>
+        <format property="env.BUILD_NUMBER" pattern="yyyyMMddhhmm"/>
+    </tstamp>
+
+    <echo message="Virtual Env is in: ${env.VIRTUAL_ENV}" />
+
+    <!--<target name="deploy" depends="build,install,tag" />-->
+
+    <target name="test">
+        <!--<exec executable="${python}">
+            <env key="PYTHONPATH" path="${basedir}"/>
+            <arg value="flei/manage.py"/>
+            <arg value="-e=test"/>
+            <arg value="core"/>
+            <arg value="test"/>
+        </exec>-->
+    </target>
+
+    <!--<target name="scp_to_server">
+        <scp
+            todir="${ssh_user}@${ssh_deploy_host}:${ssh_deploy_directory}"
+            keyfile="${ssh_keyfile}"
+            port="${ssh_deploy_port}"
+            trust="true">
+
+            <fileset dir="${dist}">
+                <include name="**/*.whl"/>
+            </fileset>
+        </scp>
+    </target>-->
+
+    <!--<target name="install" depends="scp_to_server">
+        <fileset id="whl_file" dir="${dist}">
+                <include name="**/*.whl"/>
+            </fileset>
+        <echo message="Installing ${toString:whl_file} on Server ${ssh_deploy_host} with virtualenv ${ssh_deploy_venv}" />
+        <echo message="You have 10 Seconds to interrupt"/>
+        <sleep seconds="10"/>
+        <sshexec host="${ssh_deploy_host}"
+            username="${ssh_user}"
+            keyfile="${ssh_keyfile}"
+            port="${ssh_deploy_port}"
+            trust="true"
+            command="source ${ssh_deploy_venv}/bin/activate; pip install -v ${ssh_deploy_directory}/${toString:whl_file}"/>
+        <sshexec host="${ssh_deploy_host}"
+            username="${ssh_user}"
+            keyfile="${ssh_keyfile}"
+            port="${ssh_deploy_port}"
+            trust="true"
+            command="sudo service httpd restart"/>
+    </target>-->
+
+    <target name="init" depends="clean">
+        <tstamp/>
+        <mkdir dir="${build}"/>
+        <mkdir dir="${dist}"/>
+
+        <exec executable="${pip}">
+            <arg value="install"/>
+            <arg value="wheel"/>
+        </exec>
+        <exec executable="${pip}">
+            <arg value="install"/>
+            <arg value="twine"/>
+        </exec>
+    </target>
+
+    <target name="build" depends="init,test,doc"
+            description="compile the source ">
+        <!--<copy file="${basedir}/version.json.template" tofile="${basedir}/version.json" overwrite="true">
+            <filterset>
+                <filter token="RELEASE" value="${env.BUILD_NUMBER}"/>
+                <filter token="BUILDTAG" value="${BUILD_TAG}"/>
+                <filter token="VERSION" value="${VERSION}"/>
+            </filterset>
+        </copy>
+        <copy file="${basedir}/version.json" tofile="${basedir}/flei/version.json" overwrite="true"/>
+        -->
+        <exec executable="${pip}">
+            <arg value="freeze"/>
+        </exec>
+        <exec executable="${python}">
+            <arg value="setup.py"/>
+            <arg value="sdist"/>
+            <arg value="bdist_wheel"/>
+            <!--<arg value="upload"/>
+            <arg value="-r"/>
+            <arg value="${pypi_repository}"/>-->
+        </exec>
+        <!--<antcall target="tag" /> -->
+    </target>
+
+    <target name="upload" depends="init,test,doc"
+            description="compile the source and upload it to pypi ">
+        <!--<copy file="${basedir}/version.json.template" tofile="${basedir}/version.json" overwrite="true">
+            <filterset>
+                <filter token="RELEASE" value="${env.BUILD_NUMBER}"/>
+                <filter token="BUILDTAG" value="${BUILD_TAG}"/>
+                <filter token="VERSION" value="${VERSION}"/>
+            </filterset>
+        </copy>
+        <copy file="${basedir}/version.json" tofile="${basedir}/flei/version.json" overwrite="true"/>
+        -->
+        <exec executable="${pip}">
+            <arg value="freeze"/>
+        </exec>
+        <exec executable="${python}">
+            <arg value="setup.py"/>
+            <arg value="sdist"/>
+            <arg value="bdist_wheel"/>
+            <arg value="upload"/>
+            <!--<arg value="-r"/>
+            <arg value="${pypi_repository}"/>-->
+        </exec>
+        <!--<antcall target="tag" /> -->
+    </target>
+
+    <target name="doc" description="builds the sphinx documentation">
+        <!--<exec executable="make">
+            <arg value="-C"/>
+            <arg value="${basedir}/doc"/>
+            <arg value="html"/>
+        </exec>
+        <copydir src="${basedir}/doc/_build/html" dest="${basedir}/doc/html" />-->
+    </target>
+
+    <target name="tag" description="Creates a git tag for the given repository">
+        <exec executable="git">
+            <arg value="tag"/>
+            <arg value="-a"/>
+            <arg value="${BUILD_TAG}_${VERSION}.${env.BUILD_NUMBER}"/>
+            <arg value="-m"/>
+            <arg value="'tag created by ant ${VERSION}.${env.BUILD_NUMBER}'"/>
+        </exec>
+    </target>
+
+    <target name="clean"
+            description="clean up">
+        <!-- Delete the ${build} and ${dist} directory trees -->
+        <delete dir="${build}"/>
+        <delete dir="${dist}"/>
+        <delete dir="${basedir}/doc/_build"/>
+    </target>
+</project>

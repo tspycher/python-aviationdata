@@ -1,6 +1,6 @@
 # coding: latin-1
 from blocks import BlockFactory
-from receiver import MetarReceiver, TafReceiver, AirportReceiver
+from receiver import MetarReceiver, TafReceiver, AirportReceiver, HbAircraftReceiver
 from presenter import JsonPresenter, HumanPresenter
 
 def retreiveReport(airport=None):
